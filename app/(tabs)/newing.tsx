@@ -15,27 +15,75 @@ type TTicTacToeVal = {
   value: string;
 };
 
+type TTicTacToeWinner = {
+  player: string;
+  positions: number[];
+};
+
 const Newing = () => {
+  const positionsTicTacToeWinner: number[][] = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9],
+    [1, 4, 7],
+    [2, 5, 8],
+    [3, 6, 9],
+    [1, 5, 9],
+    [3, 5, 7],
+  ];
+
+  const initialTableTicTacToe = Array.from({ length: 9 }, (_, i) => ({
+    position: i,
+    value: '',
+  }));
+
   const colorScheme = useColorScheme();
   const ColorsApp = Colors[colorScheme ?? 'light'];
   const [player, setPlayer] = useState<string>('X');
-
+  const [winner, setWinner] = useState<TTicTacToeWinner | null>(null);
   const [tableTicTacToe, setTableTicTacToe] = useState<TTicTacToeVal[]>(
-    Array.from({ length: 9 }, (_, i) => ({ position: i, value: '' })),
+    initialTableTicTacToe,
   );
+  const [tiedGame, setTiedGame] = useState<boolean>(false);
+
+  const onResetGameTicTacToe = () => {
+    setTableTicTacToe(initialTableTicTacToe);
+    setWinner(null);
+    setTiedGame(false);
+  };
 
   const onChangingPlayer = () => {
     setPlayer(player === 'X' ? 'O' : 'X');
   };
 
   const onClickValTicTacToe = (item: TTicTacToeVal) => {
-    onChangingPlayer();
-    const findItem = tableTicTacToe.find(
+    const currentTableTicTacToe = [...tableTicTacToe];
+
+    const findItem = currentTableTicTacToe.find(
       (val) => val.position === item.position,
     );
-    if (findItem) {
+    if (findItem && !findItem.value) {
       findItem.value = player;
-      setTableTicTacToe([...tableTicTacToe]);
+
+      const isWinnerWithPositions = positionsTicTacToeWinner.find((items) => {
+        return items.every((val) => {
+          return currentTableTicTacToe[val - 1].value === player;
+        });
+      });
+
+      if (isWinnerWithPositions) {
+        setWinner({
+          player,
+          positions: isWinnerWithPositions || [],
+        });
+      }
+
+      if (currentTableTicTacToe.every(({ value }) => !!value)) {
+        setTiedGame(true);
+      }
+
+      setTableTicTacToe([...currentTableTicTacToe]);
+      onChangingPlayer();
     }
   };
 
@@ -55,8 +103,19 @@ const Newing = () => {
             return (
               <TouchableOpacity
                 key={items.position}
-                style={styles.valContainerTicTacToe}
-                onPress={() => onClickValTicTacToe(items)}
+                style={{
+                  ...styles.valContainerTicTacToe,
+                  backgroundColor: winner?.positions.includes(
+                    items.position + 1,
+                  )
+                    ? player === 'X'
+                      ? '#dc2626'
+                      : '#2563eb'
+                    : tiedGame
+                      ? '#fcfc5a'
+                      : '#fff',
+                }}
+                onPress={() => !winner && onClickValTicTacToe(items)}
               >
                 <View>
                   <Text> {items.value}</Text>
@@ -67,7 +126,7 @@ const Newing = () => {
         </View>
       </View>
       <View style={styles.containNav}>
-        <ThemedText type="subtitle">Newing</ThemedText>
+        <ThemedText type="subtitle">Acciones</ThemedText>
       </View>
       <View style={{ flex: 1, padding: 8, display: 'flex' }}>
         <View style={styles.containerRow}>
@@ -77,13 +136,22 @@ const Newing = () => {
             <Button
               title="Cambiar"
               onPress={onChangingPlayer}
-              disabled={!tableTicTacToe.every(({ value }) => !value)}
+              disabled={
+                !tableTicTacToe.every(({ value }) => !value) || !!winner
+              }
             />
           </View>
+          <View style={{ paddingRight: 16 }}><Button title="Restablecer" onPress={() => onResetGameTicTacToe()} /></View>
+        <View>
+          {!!winner && (
+            <ThemedText type="defaultSemiBold">
+              {`Ganador: ${winner.player}`}
+            </ThemedText>
+          )}
+          {tiedGame && (
+            <ThemedText type="defaultSemiBold">{`Empate!`}</ThemedText>
+          )}
         </View>
-        <View style={styles.containerRow}>
-          <ThemedText type="defaultSemiBold">{'Init Figure: '}</ThemedText>
-          <ThemedText type="defaultSemiBold">{player}</ThemedText>
         </View>
       </View>
     </View>
